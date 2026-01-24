@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -11,7 +12,7 @@ func TestCommandLineArgParsing(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
-	// Test with command-line argument
+	// Test with single command-line argument
 	testMessage := "There is a bug, can you fix it?"
 	os.Args = []string{"issue-summariser", testMessage}
 
@@ -19,11 +20,30 @@ func TestCommandLineArgParsing(t *testing.T) {
 	// Here we're just testing the logic conceptually
 	var input Input
 	if len(os.Args) > 1 {
-		input.Message = os.Args[1]
+		input.Message = strings.Join(os.Args[1:], " ")
 	}
 
 	if input.Message != testMessage {
 		t.Errorf("Expected message %q, got %q", testMessage, input.Message)
+	}
+}
+
+func TestCommandLineArgParsingMultipleArgs(t *testing.T) {
+	// Save the original os.Args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Test with multiple command-line arguments (unquoted words)
+	os.Args = []string{"issue-summariser", "Fix", "the", "API", "error"}
+	expectedMessage := "Fix the API error"
+
+	var input Input
+	if len(os.Args) > 1 {
+		input.Message = strings.Join(os.Args[1:], " ")
+	}
+
+	if input.Message != expectedMessage {
+		t.Errorf("Expected message %q, got %q", expectedMessage, input.Message)
 	}
 }
 

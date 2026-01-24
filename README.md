@@ -113,8 +113,6 @@ Expected output:
 
 ### Legacy JSON Input Examples
 
-### Legacy JSON Input Examples
-
 For backward compatibility, you can still use JSON input via stdin:
 
 ```bash

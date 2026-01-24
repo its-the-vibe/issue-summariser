@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	copilot "github.com/github/copilot-sdk/go"
 )
@@ -31,8 +32,9 @@ func main() {
 
 	// Check if a command-line argument is provided
 	if len(os.Args) > 1 {
-		// Use command-line argument as the message
-		input.Message = os.Args[1]
+		// Use all command-line arguments joined as the message
+		// This handles multi-word messages properly
+		input.Message = strings.Join(os.Args[1:], " ")
 	} else {
 		// Fall back to reading JSON input from stdin
 		inputBytes, err := io.ReadAll(os.Stdin)
