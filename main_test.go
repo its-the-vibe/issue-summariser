@@ -53,9 +53,19 @@ func TestEmbeddedAgentContent(t *testing.T) {
 		t.Error("Embedded agent content should not be empty")
 	}
 
-	// Verify it contains expected content
-	if len(agentContent) < 100 {
-		t.Error("Embedded agent content seems too short")
+	// Verify it contains expected key content from the agent description
+	expectedContent := []string{
+		"Issue Summariser Agent",
+		"title",
+		"prompt",
+		"version",
+		"message",
+	}
+	
+	for _, expected := range expectedContent {
+		if !strings.Contains(agentContent, expected) {
+			t.Errorf("Embedded agent content missing expected string: %q", expected)
+		}
 	}
 }
 
