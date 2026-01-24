@@ -1,6 +1,6 @@
 module github.com/its-the-vibe/issue-summariser
 
-go 1.24.12
+go 1.25.5
 
 require github.com/github/copilot-sdk/go v0.1.17
 
