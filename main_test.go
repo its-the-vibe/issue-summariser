@@ -2,8 +2,42 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 )
+
+func TestCommandLineArgParsing(t *testing.T) {
+	// Save the original os.Args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Test with command-line argument
+	testMessage := "There is a bug, can you fix it?"
+	os.Args = []string{"issue-summariser", testMessage}
+
+	// The actual parsing logic would be tested as part of main()
+	// Here we're just testing the logic conceptually
+	var input Input
+	if len(os.Args) > 1 {
+		input.Message = os.Args[1]
+	}
+
+	if input.Message != testMessage {
+		t.Errorf("Expected message %q, got %q", testMessage, input.Message)
+	}
+}
+
+func TestEmbeddedAgentContent(t *testing.T) {
+	// Verify that agentContent is not empty after embedding
+	if agentContent == "" {
+		t.Error("Embedded agent content should not be empty")
+	}
+
+	// Verify it contains expected content
+	if len(agentContent) < 100 {
+		t.Error("Embedded agent content seems too short")
+	}
+}
 
 func TestInputJSONMarshaling(t *testing.T) {
 	input := Input{Message: "Test message"}

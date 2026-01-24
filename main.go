@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,9 @@ import (
 
 	copilot "github.com/github/copilot-sdk/go"
 )
+
+//go:embed .github/agents/issue-summariser.agent.md
+var agentContent string
 
 // Input represents the JSON input format
 type Input struct {
@@ -23,21 +27,22 @@ type Output struct {
 }
 
 func main() {
-	// Read agent description from file
-	agentContent, err := os.ReadFile(".github/agents/issue-summariser.agent.md")
-	if err != nil {
-		log.Fatalf("Failed to read agent description: %v", err)
-	}
-
-	// Read JSON input from stdin
-	inputBytes, err := io.ReadAll(os.Stdin)
-	if err != nil {
-		log.Fatalf("Failed to read input: %v", err)
-	}
-
 	var input Input
-	if err := json.Unmarshal(inputBytes, &input); err != nil {
-		log.Fatalf("Failed to parse input JSON: %v", err)
+
+	// Check if a command-line argument is provided
+	if len(os.Args) > 1 {
+		// Use command-line argument as the message
+		input.Message = os.Args[1]
+	} else {
+		// Fall back to reading JSON input from stdin
+		inputBytes, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatalf("Failed to read input: %v", err)
+		}
+
+		if err := json.Unmarshal(inputBytes, &input); err != nil {
+			log.Fatalf("Failed to parse input JSON: %v", err)
+		}
 	}
 
 	// Create Copilot client
@@ -51,7 +56,7 @@ func main() {
 	session, err := client.CreateSession(&copilot.SessionConfig{
 		Model: "gpt-4.1",
 		SystemMessage: &copilot.SystemMessageConfig{
-			Content: string(agentContent),
+			Content: agentContent,
 		},
 	})
 	if err != nil {
