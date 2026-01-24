@@ -30,4 +30,6 @@ lint:
 
 # Build and run
 run: build
-	@echo "Usage: echo '{\"message\": \"your message\"}' | ./issue-summariser"
+	@echo "Usage examples:"
+	@echo "  New format:    ./issue-summariser \"your message here\""
+	@echo "  Legacy format: echo '{\"message\": \"your message\"}' | ./issue-summariser"
