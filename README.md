@@ -31,17 +31,29 @@ go build -o issue-summariser main.go
 
 ## Usage
 
-The issue summariser reads JSON input from stdin and outputs a JSON response with the generated issue title.
+The issue summariser can be used in two ways:
 
-### Input Format
+### Option 1: Command-line Argument (Simplified)
 
-```json
-{
-  "message": "[your message content here]"
-}
+Simply pass your message as a command-line argument:
+
+```bash
+./issue-summariser "There is a bug, can you fix it?"
+```
+
+This is the recommended and simplest way to use the tool.
+
+### Option 2: JSON Input via stdin (Legacy)
+
+For backward compatibility, the tool still accepts JSON input from stdin:
+
+```bash
+echo '{"message": "your message content here"}' | ./issue-summariser
 ```
 
 ### Output Format
+
+Both methods produce the same JSON output:
 
 ```json
 {
@@ -51,7 +63,57 @@ The issue summariser reads JSON input from stdin and outputs a JSON response wit
 }
 ```
 
-### Example
+### Examples
+
+**Example 1: Feature Request**
+
+```bash
+./issue-summariser "We need to add support for uploading images to the user profile page. Currently users can only set text-based information but many have requested the ability to upload a profile picture. This should support common formats like PNG, JPG, and GIF."
+```
+
+Output:
+
+```json
+{
+  "version": 4,
+  "title": "Add image upload support to user profile page",
+  "prompt": "We need to add support for uploading images to the user profile page. Currently users can only set text-based information but many have requested the ability to upload a profile picture. This should support common formats like PNG, JPG, and GIF."
+}
+```
+
+**Example 2: Bug Report**
+
+```bash
+./issue-summariser "The API is returning 500 errors when we try to delete a user that has associated posts. Need to handle this case properly."
+```
+
+Expected output:
+```json
+{
+  "version": 4,
+  "title": "Fix API error when deleting users with posts",
+  "prompt": "The API is returning 500 errors when we try to delete a user that has associated posts. Need to handle this case properly."
+}
+```
+
+**Example 3: Documentation Update**
+
+```bash
+./issue-summariser "Update the documentation to include the new authentication flow we implemented last week"
+```
+
+Expected output:
+```json
+{
+  "version": 4,
+  "title": "Update documentation for new authentication flow",
+  "prompt": "Update the documentation to include the new authentication flow we implemented last week"
+}
+```
+
+### Legacy JSON Input Examples
+
+For backward compatibility, you can still use JSON input via stdin:
 
 ```bash
 echo '{"message": "We need to add support for uploading images to the user profile page. Currently users can only set text-based information but many have requested the ability to upload a profile picture. This should support common formats like PNG, JPG, and GIF."}' | ./issue-summariser
@@ -67,9 +129,9 @@ Output:
 }
 ```
 
-### More Examples
+### More Legacy Examples
 
-**Example 1: API Error**
+**API Error (JSON Input)**
 
 ```bash
 echo '{"message": "The API is returning 500 errors when we try to delete a user that has associated posts. Need to handle this case properly."}' | ./issue-summariser
@@ -84,7 +146,7 @@ Expected output:
 }
 ```
 
-**Example 2: Documentation Update**
+**Documentation Update (JSON Input)**
 
 ```bash
 echo '{"message": "Update the documentation to include the new authentication flow we implemented last week"}' | ./issue-summariser
@@ -101,7 +163,7 @@ Expected output:
 
 ## How It Works
 
-The issue summariser loads the agent description from `.github/agents/issue-summariser.agent.md`, which contains:
+The issue summariser uses an embedded AI agent description that contains:
 
 - Instructions for analyzing message content
 - Guidelines for generating concise, descriptive issue titles
@@ -109,6 +171,8 @@ The issue summariser loads the agent description from `.github/agents/issue-summ
 - Examples to guide the AI agent
 
 The agent uses GitHub Copilot's GPT-4.1 model to analyze the input and generate appropriate issue titles that follow GitHub best practices.
+
+The agent description is embedded directly into the binary using Go's `embed` package, so the tool can run from any location without needing access to the `.github/agents/issue-summariser.agent.md` file.
 
 ## Title Guidelines
 

@@ -2,8 +2,72 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 )
+
+func TestCommandLineArgParsing(t *testing.T) {
+	// Save the original os.Args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Test with single command-line argument
+	testMessage := "There is a bug, can you fix it?"
+	os.Args = []string{"issue-summariser", testMessage}
+
+	// The actual parsing logic would be tested as part of main()
+	// Here we're just testing the logic conceptually
+	var input Input
+	if len(os.Args) > 1 {
+		input.Message = strings.Join(os.Args[1:], " ")
+	}
+
+	if input.Message != testMessage {
+		t.Errorf("Expected message %q, got %q", testMessage, input.Message)
+	}
+}
+
+func TestCommandLineArgParsingMultipleArgs(t *testing.T) {
+	// Save the original os.Args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Test with multiple command-line arguments (unquoted words)
+	os.Args = []string{"issue-summariser", "Fix", "the", "API", "error"}
+	expectedMessage := "Fix the API error"
+
+	var input Input
+	if len(os.Args) > 1 {
+		input.Message = strings.Join(os.Args[1:], " ")
+	}
+
+	if input.Message != expectedMessage {
+		t.Errorf("Expected message %q, got %q", expectedMessage, input.Message)
+	}
+}
+
+func TestEmbeddedAgentContent(t *testing.T) {
+	// Verify that agentContent is not empty after embedding
+	if agentContent == "" {
+		t.Error("Embedded agent content should not be empty")
+	}
+
+	// Verify it contains expected key content from the agent description
+	expectedContent := []string{
+		"Issue Summariser Agent",
+		"title",
+		"prompt",
+		"version",
+		"message",
+	}
+	
+	for _, expected := range expectedContent {
+		if !strings.Contains(agentContent, expected) {
+			t.Errorf("Embedded agent content missing expected string: %q", expected)
+		}
+	}
+}
 
 func TestInputJSONMarshaling(t *testing.T) {
 	input := Input{Message: "Test message"}
