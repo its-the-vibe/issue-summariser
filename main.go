@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -47,15 +48,17 @@ func main() {
 		}
 	}
 
+	ctx := context.Background()
+
 	// Create Copilot client
 	client := copilot.NewClient(nil)
-	if err := client.Start(); err != nil {
+	if err := client.Start(ctx); err != nil {
 		log.Fatalf("Failed to start Copilot client: %v", err)
 	}
 	defer client.Stop()
 
 	// Create session with the agent description as system message
-	session, err := client.CreateSession(&copilot.SessionConfig{
+	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
 		Model: "gpt-4.1",
 		SystemMessage: &copilot.SystemMessageConfig{
 			Content: agentContent,
@@ -72,9 +75,9 @@ func main() {
 	}
 
 	// Send the input message to the agent
-	response, err := session.SendAndWait(copilot.MessageOptions{
+	response, err := session.SendAndWait(ctx, copilot.MessageOptions{
 		Prompt: string(inputJSON),
-	}, 0)
+	})
 	if err != nil {
 		log.Fatalf("Failed to get response: %v", err)
 	}
