@@ -67,6 +67,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create session: %v", err)
 	}
+	defer session.Destroy()
 
 	// Create the input JSON
 	inputJSON, err := json.Marshal(input)
