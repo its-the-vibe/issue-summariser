@@ -57,7 +57,7 @@ Both methods produce the same JSON output:
 
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "[generated GitHub issue title]",
   "prompt": "[the exact input message you provided]"
 }
@@ -75,7 +75,7 @@ Output:
 
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Add image upload support to user profile page",
   "prompt": "We need to add support for uploading images to the user profile page. Currently users can only set text-based information but many have requested the ability to upload a profile picture. This should support common formats like PNG, JPG, and GIF."
 }
@@ -90,7 +90,7 @@ Output:
 Expected output:
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Fix API error when deleting users with posts",
   "prompt": "The API is returning 500 errors when we try to delete a user that has associated posts. Need to handle this case properly."
 }
@@ -105,7 +105,7 @@ Expected output:
 Expected output:
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Update documentation for new authentication flow",
   "prompt": "Update the documentation to include the new authentication flow we implemented last week"
 }
@@ -123,7 +123,7 @@ Output:
 
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Add image upload support to user profile page",
   "prompt": "We need to add support for uploading images to the user profile page. Currently users can only set text-based information but many have requested the ability to upload a profile picture. This should support common formats like PNG, JPG, and GIF."
 }
@@ -140,7 +140,7 @@ echo '{"message": "The API is returning 500 errors when we try to delete a user 
 Expected output:
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Fix API error when deleting users with posts",
   "prompt": "The API is returning 500 errors when we try to delete a user that has associated posts. Need to handle this case properly."
 }
@@ -155,7 +155,7 @@ echo '{"message": "Update the documentation to include the new authentication fl
 Expected output:
 ```json
 {
-  "version": 5,
+  "version": 4,
   "title": "Update documentation for new authentication flow",
   "prompt": "Update the documentation to include the new authentication flow we implemented last week"
 }
