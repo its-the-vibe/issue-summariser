@@ -28,6 +28,58 @@ type Output struct {
 	Prompt  string `json:"prompt"`
 }
 
+// extractJSON attempts to extract a JSON object from a string that may contain
+// surrounding text or markdown code fences (e.g. ```json ... ```).
+func extractJSON(s string) string {
+	s = strings.TrimSpace(s)
+	// Strip markdown code fences if present
+	if strings.HasPrefix(s, "```") {
+		// Remove the opening fence line and closing fence
+		if idx := strings.Index(s, "\n"); idx != -1 {
+			s = s[idx+1:]
+		}
+		if idx := strings.LastIndex(s, "```"); idx != -1 {
+			s = s[:idx]
+		}
+		s = strings.TrimSpace(s)
+	}
+	// Find the first '{' and match its closing '}' accounting for nesting
+	start := strings.Index(s, "{")
+	if start == -1 {
+		return s
+	}
+	depth := 0
+	inString := false
+	escaped := false
+	for i := start; i < len(s); i++ {
+		ch := s[i]
+		if escaped {
+			escaped = false
+			continue
+		}
+		if ch == '\\' && inString {
+			escaped = true
+			continue
+		}
+		if ch == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if ch == '{' {
+			depth++
+		} else if ch == '}' {
+			depth--
+			if depth == 0 {
+				return s[start : i+1]
+			}
+		}
+	}
+	return s
+}
+
 func main() {
 	var input Input
 
@@ -86,7 +138,8 @@ func main() {
 	// Parse the response to extract the JSON
 	var output Output
 	if response.Data.Content != nil {
-		if err := json.Unmarshal([]byte(*response.Data.Content), &output); err != nil {
+		content := extractJSON(*response.Data.Content)
+		if err := json.Unmarshal([]byte(content), &output); err != nil {
 			fmt.Printf("input is: %v\n", string(inputJSON))
 			fmt.Printf("response is: %v\n", *response.Data.Content)
 			log.Fatalf("Failed to parse response JSON: %v", err)
