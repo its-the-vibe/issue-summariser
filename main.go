@@ -87,7 +87,8 @@ func main() {
 	var output Output
 	if response.Data.Content != nil {
 		if err := json.Unmarshal([]byte(*response.Data.Content), &output); err != nil {
-			fmt.Println("input is: %v", string(inputJSON))
+			fmt.Printf("input is: %v\n", string(inputJSON))
+			fmt.Printf("response is: %v\n", *response.Data.Content)
 			log.Fatalf("Failed to parse response JSON: %v", err)
 		}
 	} else {
