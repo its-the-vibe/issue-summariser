@@ -155,3 +155,51 @@ func TestOutputJSONFormat(t *testing.T) {
 		t.Error("Output missing 'prompt' field")
 	}
 }
+
+func TestExtractJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "plain JSON",
+			input:    `{"version":4,"title":"Fix bug","prompt":"message"}`,
+			expected: `{"version":4,"title":"Fix bug","prompt":"message"}`,
+		},
+		{
+			name:     "JSON with leading/trailing whitespace",
+			input:    "  \n{\"version\":4,\"title\":\"Fix bug\",\"prompt\":\"message\"}\n  ",
+			expected: `{"version":4,"title":"Fix bug","prompt":"message"}`,
+		},
+		{
+			name:     "JSON wrapped in markdown code fence",
+			input:    "```json\n{\"version\":4,\"title\":\"Fix bug\",\"prompt\":\"message\"}\n```",
+			expected: `{"version":4,"title":"Fix bug","prompt":"message"}`,
+		},
+		{
+			name:     "JSON wrapped in plain code fence",
+			input:    "```\n{\"version\":4,\"title\":\"Fix bug\",\"prompt\":\"message\"}\n```",
+			expected: `{"version":4,"title":"Fix bug","prompt":"message"}`,
+		},
+		{
+			name:     "plain text with no JSON",
+			input:    "Fix the modal bug",
+			expected: "Fix the modal bug",
+		},
+		{
+			name:     "JSON with nested objects",
+			input:    `{"version":4,"title":"Fix bug","prompt":"message with {braces} inside"}`,
+			expected: `{"version":4,"title":"Fix bug","prompt":"message with {braces} inside"}`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := extractJSON(tc.input)
+			if result != tc.expected {
+				t.Errorf("extractJSON(%q) = %q, want %q", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
