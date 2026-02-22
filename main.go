@@ -113,6 +113,7 @@ func main() {
 	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
 		Model: "gpt-4.1",
 		SystemMessage: &copilot.SystemMessageConfig{
+			Mode:    "replace",
 			Content: agentContent,
 		},
 	})
