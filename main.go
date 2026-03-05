@@ -116,6 +116,7 @@ func main() {
 			Mode:    "replace",
 			Content: agentContent,
 		},
+		OnPermissionRequest: copilot.PermissionHandler.ApproveAll,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create session: %v", err)
