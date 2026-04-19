@@ -139,11 +139,11 @@ func main() {
 
 	// Parse the response to extract the JSON
 	var output Output
-	if response.Data.Content != nil {
-		content := extractJSON(*response.Data.Content)
+	if d, ok := response.Data.(*copilot.AssistantMessageData); ok {
+		content := extractJSON(d.Content)
 		if err := json.Unmarshal([]byte(content), &output); err != nil {
 			fmt.Printf("input is: %v\n", string(inputJSON))
-			fmt.Printf("response is: %v\n", *response.Data.Content)
+			fmt.Printf("response is: %v\n", d.Content)
 			log.Fatalf("Failed to parse response JSON: %v", err)
 		}
 	} else {
