@@ -1,5 +1,7 @@
 # issue-summariser
 
+[![CI](https://github.com/its-the-vibe/issue-summariser/actions/workflows/ci.yaml/badge.svg)](https://github.com/its-the-vibe/issue-summariser/actions/workflows/ci.yaml)
+
 A command-line issue summariser agent built with the [GitHub Copilot SDK for Go](https://github.com/github/copilot-sdk/go).
 
 ## Description
