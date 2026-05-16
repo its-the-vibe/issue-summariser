@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 	"strings"
 	"testing"
@@ -16,11 +17,15 @@ func TestCommandLineArgParsing(t *testing.T) {
 	testMessage := "There is a bug, can you fix it?"
 	os.Args = []string{"issue-summariser", testMessage}
 
-	// The actual parsing logic would be tested as part of main()
-	// Here we're just testing the logic conceptually
+	// We need to reset flag.CommandLine because flags might have been parsed in other tests or main
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	var providerName string
+	flag.StringVar(&providerName, "provider", "", "")
+	flag.Parse()
+
 	var input Input
-	if len(os.Args) > 1 {
-		input.Message = strings.Join(os.Args[1:], " ")
+	if flag.NArg() > 0 {
+		input.Message = strings.Join(flag.Args(), " ")
 	}
 
 	if input.Message != testMessage {
@@ -37,9 +42,14 @@ func TestCommandLineArgParsingMultipleArgs(t *testing.T) {
 	os.Args = []string{"issue-summariser", "Fix", "the", "API", "error"}
 	expectedMessage := "Fix the API error"
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	var providerName string
+	flag.StringVar(&providerName, "provider", "", "")
+	flag.Parse()
+
 	var input Input
-	if len(os.Args) > 1 {
-		input.Message = strings.Join(os.Args[1:], " ")
+	if flag.NArg() > 0 {
+		input.Message = strings.Join(flag.Args(), " ")
 	}
 
 	if input.Message != expectedMessage {
