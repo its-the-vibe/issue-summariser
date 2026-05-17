@@ -13,8 +13,7 @@ import (
 	"strings"
 
 	copilot "github.com/github/copilot-sdk/go"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
 //go:embed .github/agents/issue-summariser.agent.md
@@ -37,15 +36,13 @@ type GeminiProvider struct {
 }
 
 func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Output, error) {
-	client, err := genai.NewClient(ctx, option.WithAPIKey(p.APIKey))
+	client, err := genai.NewClient(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
-	defer client.Close()
 
-	model := client.GenerativeModel(p.Model)
-	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(agentContent)},
+	generateContentConfig := &genai.GenerateContentConfig{
+		SystemInstruction: genai.NewContentFromText(agentContent, genai.RoleUser),
 	}
 
 	inputJSON, err := json.Marshal(input)
@@ -53,7 +50,7 @@ func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Out
 		return nil, fmt.Errorf("failed to marshal input: %w", err)
 	}
 
-	resp, err := model.GenerateContent(ctx, genai.Text(string(inputJSON)))
+	resp, err := client.Models.GenerateContent(ctx, p.Model, genai.Text(string(inputJSON)), generateContentConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate content: %w", err)
 	}
@@ -64,9 +61,7 @@ func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Out
 
 	var content strings.Builder
 	for _, part := range resp.Candidates[0].Content.Parts {
-		if text, ok := part.(genai.Text); ok {
-			content.WriteString(string(text))
-		}
+		content.WriteString(part.Text)
 	}
 
 	var output Output
@@ -194,10 +189,10 @@ func extractJSON(s string) string {
 
 func main() {
 	var (
-		providerName  string
-		geminiAPIKey  string
-		geminiModel   string
-		copilotModel  string
+		providerName string
+		geminiAPIKey string
+		geminiModel  string
+		copilotModel string
 	)
 
 	flag.StringVar(&providerName, "provider", os.Getenv("ISSUE_SUMMARISER_PROVIDER"), "AI provider to use (copilot or gemini)")
