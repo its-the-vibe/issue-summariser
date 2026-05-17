@@ -2,17 +2,19 @@
 
 [![CI](https://github.com/its-the-vibe/issue-summariser/actions/workflows/ci.yaml/badge.svg)](https://github.com/its-the-vibe/issue-summariser/actions/workflows/ci.yaml)
 
-A command-line issue summariser agent built with the [GitHub Copilot SDK for Go](https://github.com/github/copilot-sdk/go).
+A command-line issue summariser agent built with the [GitHub Copilot SDK for Go](https://github.com/github/copilot-sdk/go) and [Google Gemini](https://ai.google.dev/gemini-api).
 
 ## Description
 
-This tool generates concise, descriptive GitHub issue titles from Slack message content or any other input text. It uses a specialized AI agent that analyzes the message content, extracts the key purpose or problem, and generates a clear issue title following GitHub best practices.
+This tool generates concise, descriptive GitHub issue titles from Slack message content or any other input text. It supports multiple AI backends, including GitHub Copilot and Google Gemini. The tool analyzes the message content, extracts the key purpose or problem, and generates a clear issue title following GitHub best practices.
 
 ## Prerequisites
 
-Before you begin, make sure you have:
+Before you begin, make sure you have **Go** 1.25+ installed.
 
-- **Go** 1.25+ installed
+Depending on your preferred AI backend, you will also need:
+
+### For GitHub Copilot (Default)
 - **GitHub Copilot CLI** installed and authenticated ([Installation guide](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli))
 
 Verify the Copilot CLI is working:
@@ -20,6 +22,9 @@ Verify the Copilot CLI is working:
 ```bash
 copilot --version
 ```
+
+### For Google Gemini
+- A **Google Gemini API Key** ([Get an API key](https://aistudio.google.com/app/apikey))
 
 ## Installation
 
@@ -52,6 +57,40 @@ For backward compatibility, the tool still accepts JSON input from stdin:
 ```bash
 echo '{"message": "your message content here"}' | ./issue-summariser
 ```
+
+### Option 3: AI Provider Selection
+
+You can choose between GitHub Copilot and Google Gemini:
+
+**Using Google Gemini:**
+
+```bash
+export GEMINI_API_KEY="your-api-key"
+./issue-summariser --provider=gemini "There is a bug in the login flow"
+```
+
+Or using environment variables:
+
+```bash
+export ISSUE_SUMMARISER_PROVIDER="gemini"
+export GEMINI_API_KEY="your-api-key"
+./issue-summariser "There is a bug in the login flow"
+```
+
+**Using GitHub Copilot (Default):**
+
+```bash
+./issue-summariser --provider=copilot "There is a bug in the login flow"
+```
+
+### Configuration Options
+
+| Flag | Environment Variable | Default | Description |
+|------|----------------------|---------|-------------|
+| `--provider` | `ISSUE_SUMMARISER_PROVIDER` | `copilot` | AI provider to use (`copilot` or `gemini`) |
+| `--gemini-api-key` | `GEMINI_API_KEY` | - | API key for Google Gemini |
+| `--gemini-model` | - | `gemini-1.5-flash` | Gemini model to use |
+| `--copilot-model` | - | `gpt-4.1` | Copilot model to use |
 
 ### Output Format
 
@@ -172,7 +211,7 @@ The issue summariser uses an embedded AI agent description that contains:
 - Best practices like using imperative mood, being specific, and avoiding vague terms
 - Examples to guide the AI agent
 
-The agent uses GitHub Copilot's GPT-4.1 model to analyze the input and generate appropriate issue titles that follow GitHub best practices.
+The agent uses either GitHub Copilot's GPT-4.1 model or Google Gemini's models to analyze the input and generate appropriate issue titles that follow GitHub best practices.
 
 The agent description is embedded directly into the binary using Go's `embed` package, so the tool can run from any location without needing access to the `.github/agents/issue-summariser.agent.md` file.
 

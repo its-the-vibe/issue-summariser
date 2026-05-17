@@ -4,6 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,10 +13,120 @@ import (
 	"strings"
 
 	copilot "github.com/github/copilot-sdk/go"
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 )
 
 //go:embed .github/agents/issue-summariser.agent.md
 var agentContent string
+
+// AIProvider defines the interface for different AI backends
+type AIProvider interface {
+	GenerateSummary(ctx context.Context, input Input) (*Output, error)
+}
+
+// CopilotProvider implements AIProvider using GitHub Copilot
+type CopilotProvider struct {
+	Model string
+}
+
+// GeminiProvider implements AIProvider using Google Gemini
+type GeminiProvider struct {
+	APIKey string
+	Model  string
+}
+
+func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Output, error) {
+	client, err := genai.NewClient(ctx, option.WithAPIKey(p.APIKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+	defer client.Close()
+
+	model := client.GenerativeModel(p.Model)
+	model.SystemInstruction = &genai.Content{
+		Parts: []genai.Part{genai.Text(agentContent)},
+	}
+
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal input: %w", err)
+	}
+
+	resp, err := model.GenerateContent(ctx, genai.Text(string(inputJSON)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate content: %w", err)
+	}
+
+	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
+		return nil, errors.New("no content in Gemini response")
+	}
+
+	var content strings.Builder
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if text, ok := part.(genai.Text); ok {
+			content.WriteString(string(text))
+		}
+	}
+
+	var output Output
+	extractedJSON := extractJSON(content.String())
+	if err := json.Unmarshal([]byte(extractedJSON), &output); err != nil {
+		return nil, fmt.Errorf("failed to parse Gemini response JSON: %w (content: %s)", err, content.String())
+	}
+
+	return &output, nil
+}
+
+func (p *CopilotProvider) GenerateSummary(ctx context.Context, input Input) (*Output, error) {
+	// Create Copilot client
+	client := copilot.NewClient(nil)
+	if err := client.Start(ctx); err != nil {
+		return nil, fmt.Errorf("failed to start Copilot client: %w", err)
+	}
+	defer client.Stop()
+
+	// Create session with the agent description as system message
+	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
+		Model: p.Model,
+		SystemMessage: &copilot.SystemMessageConfig{
+			Mode:    "replace",
+			Content: agentContent,
+		},
+		OnPermissionRequest: copilot.PermissionHandler.ApproveAll,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+	defer session.Destroy()
+
+	// Create the input JSON
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal input: %w", err)
+	}
+
+	// Send the input message to the agent
+	response, err := session.SendAndWait(ctx, copilot.MessageOptions{
+		Prompt: string(inputJSON),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get response: %w", err)
+	}
+
+	// Parse the response to extract the JSON
+	var output Output
+	if d, ok := response.Data.(*copilot.AssistantMessageData); ok {
+		content := extractJSON(d.Content)
+		if err := json.Unmarshal([]byte(content), &output); err != nil {
+			return nil, fmt.Errorf("failed to parse response JSON: %w (content: %s)", err, d.Content)
+		}
+	} else {
+		return nil, errors.New("no content in response")
+	}
+
+	return &output, nil
+}
 
 // Input represents the JSON input format
 type Input struct {
@@ -81,13 +193,27 @@ func extractJSON(s string) string {
 }
 
 func main() {
-	var input Input
+	var (
+		providerName  string
+		geminiAPIKey  string
+		geminiModel   string
+		copilotModel  string
+	)
 
-	// Check if a command-line argument is provided
-	if len(os.Args) > 1 {
-		// Use all command-line arguments joined as the message
-		// This handles multi-word messages properly
-		input.Message = strings.Join(os.Args[1:], " ")
+	flag.StringVar(&providerName, "provider", os.Getenv("ISSUE_SUMMARISER_PROVIDER"), "AI provider to use (copilot or gemini)")
+	flag.StringVar(&geminiAPIKey, "gemini-api-key", os.Getenv("GEMINI_API_KEY"), "API key for Gemini (required if provider is gemini)")
+	flag.StringVar(&geminiModel, "gemini-model", "gemini-1.5-flash", "Gemini model to use")
+	flag.StringVar(&copilotModel, "copilot-model", "gpt-4.1", "Copilot model to use")
+	flag.Parse()
+
+	if providerName == "" {
+		providerName = "copilot"
+	}
+
+	var input Input
+	if flag.NArg() > 0 {
+		// Use remaining command-line arguments as the message
+		input.Message = strings.Join(flag.Args(), " ")
 	} else {
 		// Fall back to reading JSON input from stdin
 		inputBytes, err := io.ReadAll(os.Stdin)
@@ -95,59 +221,36 @@ func main() {
 			log.Fatalf("Failed to read input: %v", err)
 		}
 
+		// Try parsing as JSON first
 		if err := json.Unmarshal(inputBytes, &input); err != nil {
-			log.Fatalf("Failed to parse input JSON: %v", err)
+			// If not JSON, treat the whole input as the message
+			input.Message = string(inputBytes)
 		}
 	}
 
 	ctx := context.Background()
 
-	// Create Copilot client
-	client := copilot.NewClient(nil)
-	if err := client.Start(ctx); err != nil {
-		log.Fatalf("Failed to start Copilot client: %v", err)
-	}
-	defer client.Stop()
-
-	// Create session with the agent description as system message
-	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
-		Model: "gpt-4.1",
-		SystemMessage: &copilot.SystemMessageConfig{
-			Mode:    "replace",
-			Content: agentContent,
-		},
-		OnPermissionRequest: copilot.PermissionHandler.ApproveAll,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create session: %v", err)
-	}
-	defer session.Destroy()
-
-	// Create the input JSON
-	inputJSON, err := json.Marshal(input)
-	if err != nil {
-		log.Fatalf("Failed to marshal input: %v", err)
-	}
-
-	// Send the input message to the agent
-	response, err := session.SendAndWait(ctx, copilot.MessageOptions{
-		Prompt: string(inputJSON),
-	})
-	if err != nil {
-		log.Fatalf("Failed to get response: %v", err)
-	}
-
-	// Parse the response to extract the JSON
-	var output Output
-	if d, ok := response.Data.(*copilot.AssistantMessageData); ok {
-		content := extractJSON(d.Content)
-		if err := json.Unmarshal([]byte(content), &output); err != nil {
-			fmt.Printf("input is: %v\n", string(inputJSON))
-			fmt.Printf("response is: %v\n", d.Content)
-			log.Fatalf("Failed to parse response JSON: %v", err)
+	var provider AIProvider
+	switch strings.ToLower(providerName) {
+	case "gemini":
+		if geminiAPIKey == "" {
+			log.Fatal("Gemini API key is required. Set GEMINI_API_KEY env var or use --gemini-api-key flag.")
 		}
-	} else {
-		log.Fatalf("No content in response")
+		provider = &GeminiProvider{
+			APIKey: geminiAPIKey,
+			Model:  geminiModel,
+		}
+	case "copilot":
+		provider = &CopilotProvider{
+			Model: copilotModel,
+		}
+	default:
+		log.Fatalf("Unknown provider: %s", providerName)
+	}
+
+	output, err := provider.GenerateSummary(ctx, input)
+	if err != nil {
+		log.Fatalf("Failed to generate summary: %v", err)
 	}
 
 	// Output the result as JSON
