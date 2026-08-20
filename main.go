@@ -93,7 +93,7 @@ func (p *CopilotProvider) GenerateSummary(ctx context.Context, input Input) (*Ou
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
-	defer session.Destroy()
+	defer session.Disconnect()
 
 	// Create the input JSON
 	inputJSON, err := json.Marshal(input)
@@ -198,7 +198,7 @@ func main() {
 	flag.StringVar(&providerName, "provider", os.Getenv("ISSUE_SUMMARISER_PROVIDER"), "AI provider to use (copilot or gemini)")
 	flag.StringVar(&geminiAPIKey, "gemini-api-key", os.Getenv("GEMINI_API_KEY"), "API key for Gemini (required if provider is gemini)")
 	flag.StringVar(&geminiModel, "gemini-model", "gemini-1.5-flash", "Gemini model to use")
-	flag.StringVar(&copilotModel, "copilot-model", "gpt-4.1", "Copilot model to use")
+	flag.StringVar(&copilotModel, "copilot-model", "auto", "Copilot model to use")
 	flag.Parse()
 
 	if providerName == "" {
