@@ -75,7 +75,15 @@ func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Out
 
 func (p *CopilotProvider) GenerateSummary(ctx context.Context, input Input) (*Output, error) {
 	// Create Copilot client
-	client := copilot.NewClient(nil)
+	clientOptions := copilot.ClientOptions{
+		Connection: copilot.StdioConnection{
+			// explicitly setting this because the copilot sdk
+			// developers broke this between version 1.0.11 and 1.0.13
+			Path: "copilot",
+		},
+	}
+
+	client := copilot.NewClient(&clientOptions)
 	if err := client.Start(ctx); err != nil {
 		return nil, fmt.Errorf("failed to start Copilot client: %w", err)
 	}
