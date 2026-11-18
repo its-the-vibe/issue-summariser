@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	copilot "github.com/github/copilot-sdk/go"
+	copilot "github.com/microsoft/copilot-sdk/go/v2"
 	"google.golang.org/genai"
 )
 
@@ -76,7 +76,8 @@ func (p *GeminiProvider) GenerateSummary(ctx context.Context, input Input) (*Out
 func (p *CopilotProvider) GenerateSummary(ctx context.Context, input Input) (*Output, error) {
 	// Create Copilot client
 	clientOptions := copilot.ClientOptions{
-		Connection: copilot.StdioConnection{
+		Mode: copilot.ModeCodingAgent,
+		Runtime: copilot.SpawnedStdioConnection{
 			// explicitly setting this because the copilot sdk
 			// developers broke this between version 1.0.11 and 1.0.13
 			Path: "copilot",
@@ -90,13 +91,15 @@ func (p *CopilotProvider) GenerateSummary(ctx context.Context, input Input) (*Ou
 	defer client.Stop()
 
 	// Create session with the agent description as system message
-	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
+	session, err := client.CreateSession(ctx, &copilot.CreateSessionOptions{
 		Model: p.Model,
 		SystemMessage: &copilot.SystemMessageConfig{
 			Mode:    "replace",
 			Content: agentContent,
 		},
-		OnPermissionRequest: copilot.PermissionHandler.ApproveAll,
+		Permissions: copilot.SessionPermissionOptions{
+			OnRequest: copilot.PermissionHandler.ApproveAll,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
