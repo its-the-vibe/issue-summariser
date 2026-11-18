@@ -3,7 +3,7 @@ module github.com/its-the-vibe/issue-summariser
 go 1.27.4
 
 require (
-	github.com/github/copilot-sdk/go/v2 v2.0.0
+	github.com/github/copilot-sdk/go/v2 v2.0.1
 	google.golang.org/genai v1.79.0
 )
 
